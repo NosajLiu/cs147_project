@@ -1,0 +1,50 @@
+
+#define Relay 12 
+#define Hsoil 10
+#define Depth 3
+#define Moist A2
+#include <SPI.h>
+#include <RF24.h>
+#include <BTLE.h>
+
+RF24 radio(7,6);
+BTLE btle(&radio);
+
+int SH=0;//
+void setup(){
+  pinMode(Hsoil,INPUT); 
+  pinMode(Relay,OUTPUT); 
+  pinMode(Depth,OUTPUT);
+  Serial.begin(9600);
+
+  while (!Serial) { }
+  Serial.println("BTLE advertisement sender");
+
+  btle.begin("Water");
+}
+void loop(){
+
+  float temp = 0.7;
+  nrf_service_data buf;
+  buf.service_uuid = NRF_TEMPERATURE_SERVICE_UUID;
+  buf.value = BTLE::to_nRF_Float(temp);
+  
+  float temp = (long)analogRead(0);
+  float data = (temp/650)*4;
+  if(analogRead(Hsoil)<400)
+  digitalWrite(Relay,HIGH);
+  else if (analogRead(Hsoil)>=600)
+  digitalWrite(Relay,LOW);
+
+  if (data<2){
+  btle.advertise(0x16,&buf,sizeof(buf));
+  }
+  
+  SH=digitalRead(Hsoil); 
+  if(SH==HIGH) 
+  digitalWrite(Relay,LOW); 
+  else 
+  digitalWrite(Relay,HIGH);
+
+  btle.hopChannel();
+}
